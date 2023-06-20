@@ -40,7 +40,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
    alberca = new Alberca(ui->doubleSpinBox_albercaInit->value(),
-                         ui->doubleSpinBox_albercaInit->value(),
                          ui->doubleSpinBox_albercaMax->value(),
                          ui->doubleSpinBox_albercaArea->value());
 
@@ -71,6 +70,69 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+void MainWindow::paso_simulador()
+{
+
+    retardo++;
+    Qacequia = acequia->getACaudal_agua();
+    Qlluvia = lluvia->getLluvia_caudal();
+
+    Vacequia = T * Qacequia;
+    Vlluvia = T * Qlluvia;
+    Ventrada = Vacequia + Vlluvia;
+
+    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo > 15)
+    {        //se divide el nivel de la alberca entre 100 para pasarlo a metros
+        Qdesague = (2 * 3.1415 * (valvula->getValvula_radio())) * sqrt(2 * 9.8 * (static_cast<double>(alberca->getNivel_real())/100.0));
+    } else {
+        Qdesague = 0;
+    }
+    Vsalida = T * Qdesague;
+
+    //alberca nivel está en centimetros
+    double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
+    alberca->setNivel_real(nuevoNivel_real);
+
+   // scene->clear();
+    mostrarAcequia(nuevoNivel_real);
+    mostrarAlberca();
+    mostrarValvula(valvula->getValvula_estado());
+
+    qreal waterLevel = static_cast<qreal>(nuevoNivel_real) / (alberca->getNivel_max());
+    qreal waterHeight = waterLevel * (alberca->getArea_base());
+    qreal viewHeight = ui->graphicsView->viewport()->size().height();
+    qreal waterY = viewHeight - waterHeight;
+    QRectF waterRect(0, waterY, (alberca->getArea_base()), waterHeight);
+    QGraphicsRectItem* waterItem = new QGraphicsRectItem(waterRect);
+    waterItem->setBrush(Qt::blue);
+    waterItem->setPen(Qt::NoPen);
+
+    //scene->addItem(waterItem);
+    if (nuevoNivel_real<240){
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
+    }else{
+     ui->label_nivelTotal->setText("Nivel: 240cm");
+
+    }
+
+    ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
+    ui->Qcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
+    ui->Qdesague->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
+    ui->Qacequia->setText("Qacequiamax: " + QString::number(acequia->getACaudal_max()) + "m^3/s");
+
+    T2 = T2 + T/1000.0;
+    ui->label_21->setText("Tiempo simulado: " + QString::number(T2)+ " s");
+
+    if (valvula->getValvula_estado() == VALVULA_CERRADA)
+    {
+        ui->label_valvula->setText("Válvula cerrada");
+    }
+    else if (valvula->getValvula_estado() == VALVULA_ABIERTA)
+    {
+        ui->label_valvula->setText("Válvula abierta");
+    }
+
+}
 
 void MainWindow::on_pushButton_start_clicked()
 {
@@ -91,17 +153,27 @@ void MainWindow::on_pushButton_start_clicked()
 
 
 
-    double valorSpinBoxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
-    valvula->setValvula_radio(valorSpinBoxvalvula);
+    double Spinboxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
+    valvula->setValvula_radio(Spinboxvalvula);
 
-    double valorSpinBoxbase= ui->doubleSpinBox_albercaArea->value();
-    alberca->setArea_base(valorSpinBoxbase);
+    double Spinboxbase= ui->doubleSpinBox_albercaArea->value();
+    alberca->setArea_base(Spinboxbase);
 
-    double valorSpinBoxacaudal = ui->doubleSpinBox_acequiaMax->value();
-    acequia->setACaudal_max(valorSpinBoxacaudal);
+    double valorSpinboxlluvia= ui->doubleSpinBox_lluviaInit->value();
+    lluvia->setLluvia_caudal(valorSpinboxlluvia);
 
-    double valorSpinboxamax = ui->doubleSpinBox_albercaMax->value();
-    alberca->setNivel_max(valorSpinboxamax);
+    //alberca
+    double Spinbox_albercamax = ui->doubleSpinBox_albercaMax->value();
+    alberca->setNivel_max(Spinbox_albercamax);
+    double Spinbox_albercaint = ui->doubleSpinBox_albercaInit->value();
+    alberca->setNivel_init(Spinbox_albercaint);
+
+    //acequia
+    double Spinbox_acequiainit= ui->doubleSpinBox_acequiaInit->value();
+    acequia->setACaudal_agua(Spinbox_acequiainit);
+
+    double Spinbox_acequiamax= ui->doubleSpinBox_acequiaMax->value();
+    acequia->setACaudal_max(Spinbox_acequiamax);
 
 
    // mostrarAlberca();
@@ -161,6 +233,10 @@ void MainWindow::on_pushButton_reset_clicked()
     alberca->setNivel_max(valorSpinboxamax);
 
     Qdesague=0;
+    Qacequia=0;
+    Qlluvia=0;
+
+    alberca->setNivel_real(0);
     scene->clear();
     mostrarAlberca();
     mostrarValvula(valvula->getValvula_estado());
@@ -168,7 +244,7 @@ void MainWindow::on_pushButton_reset_clicked()
 
 void MainWindow::on_horizontalSlider_acequia_sliderMoved(int position)
 {
-    Qacequia = acequia->getACaudal_max() * static_cast<double>(position) / 100;
+    Qacequia = (acequia->getACaudal_max())* static_cast<double>(position) /100000.0;
     ui->label_acequiaPorcent->setText("Porcentaje: " + QString::number(position) + "%");
     ui->label_acequiaCaudal->setText("Caudal: " + QString::number(Qacequia) + " m^3/s");
 }
@@ -329,65 +405,3 @@ void MainWindow::mostrarValvula(bool activado)
 
 }
 
-void MainWindow::paso_simulador()
-{
-
-    retardo++;
-    Qacequia = acequia->getACaudal_agua();
-    Qlluvia = lluvia->getLluvia_caudal();
-
-    Vacequia = T * Qacequia;
-    Vlluvia = T * Qlluvia;
-    Ventrada = Vacequia + Vlluvia;
-
-    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo > 15)
-    {        //se divide el nivel de la alberca entre 100 para pasarlo a metros
-        Qdesague = (2 * 3.1415 * (valvula->getValvula_radio())) * sqrt(2 * 9.8 * (static_cast<double>(alberca->getNivel_real())/100.0));
-    } else {
-        Qdesague = 0;
-    }
-    Vsalida = T * Qdesague;
-
-    //alberca nivel está en centimetros
-    double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
-    alberca->setNivel_real(nuevoNivel_real);
-
-   // scene->clear();
-    mostrarAcequia(nuevoNivel_real);
-    mostrarAlberca();
-    mostrarValvula(valvula->getValvula_estado());
-
-    qreal waterLevel = static_cast<qreal>(nuevoNivel_real) / (alberca->getNivel_max());
-    qreal waterHeight = waterLevel * (alberca->getArea_base());
-    qreal viewHeight = ui->graphicsView->viewport()->size().height();
-    qreal waterY = viewHeight - waterHeight;
-    QRectF waterRect(0, waterY, (alberca->getArea_base()), waterHeight);
-    QGraphicsRectItem* waterItem = new QGraphicsRectItem(waterRect);
-    waterItem->setBrush(Qt::blue);
-    waterItem->setPen(Qt::NoPen);
-
-    //scene->addItem(waterItem);
-    if (nuevoNivel_real<240){
-    ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
-    }else{
-     ui->label_nivelTotal->setText("Nivel: 240cm");
-
-    }
-
-    ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
-    ui->Qcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
-    ui->Qdesague->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
-
-    T2 = T2 + T/1000.0;
-    ui->label_21->setText("Tiempo simulado: " + QString::number(T2)+ " s");
-
-    if (valvula->getValvula_estado() == VALVULA_CERRADA)
-    {
-        ui->label_valvula->setText("Válvula cerrada");
-    }
-    else if (valvula->getValvula_estado() == VALVULA_ABIERTA)
-    {
-        ui->label_valvula->setText("Válvula abierta");
-    }
-
-}
