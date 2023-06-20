@@ -47,10 +47,9 @@ Alberca::Alberca()
 
 }
 
-Alberca::Alberca(double nivel_init, double nivel_real, double nivel_max, double area_base)
+Alberca::Alberca(double nivel_init, double nivel_max, double area_base)
 {
     setNivel_init(nivel_init);
-    setNivel_real(nivel_real);
     setNivel_max(nivel_max);
     setArea_base(area_base);
 }

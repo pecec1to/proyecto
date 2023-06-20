@@ -12,7 +12,7 @@ private:
 
 public:
     Alberca();
-    Alberca(double nivel_init, double nivel_real, double nivel_max, double area_base);
+    Alberca(double nivel_init, double nivel_max, double area_base);
 
     double getNivel_real() const;
     void setNivel_real(double newNivel_real);
