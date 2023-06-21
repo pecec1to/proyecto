@@ -11,16 +11,7 @@
 #include <QGraphicsView>
 #include <QPainter>
 
-
 int T = 1000;
-//double acequia_caudal;
-//double acequia_caudalMax;
-//double acequia_caudalInit;
-//int alberca_nivel=alberca.getNivelReal;
-//int alberca_nivelMax;
-//double alberca_areaBase;
-//double lluvia_caudal;
-//double valvula_radio;
 
 double Qdesague;
 double Vacequia;
@@ -29,7 +20,6 @@ double Vlluvia;
 double Qlluvia;
 double Ventrada;
 double Vsalida;
-int retardo;
 
 float T2;
 
@@ -75,23 +65,26 @@ MainWindow::~MainWindow()
 }
 void MainWindow::paso_simulador()
 {
-
-    retardo++;
-
     Qacequia = (acequia->getACaudal_max()) * static_cast<double>(ui->horizontalSlider_acequia->value()) /100000.0;
 
     Vacequia = T * Qacequia;
     Vlluvia = T * Qlluvia;
     Ventrada = Vacequia + Vlluvia;
+    Qdesague = (surface(valvula->getValvula_radio()) * (sqrt(2 * 9.8 * ((alberca->getNivel_real())/100.0))));
 
-    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo>15)
-    {        //se divide el nivel de la alberca entre 100 para pasarlo a metros
-        Qdesague = (surface(valvula->getValvula_radio()) * (sqrt(2 * 9.8 * ((alberca->getNivel_real())/100.0))));
-    } else {
-        Qdesague = 0;
+    if (alberca->getNivel_real() <= 0.0)
+    {
+        Qdesague = 0.0;
     }
 
+    if (valvula->getValvula_estado() == VALVULA_ABIERTA)
+    {
     Vsalida = T * Qdesague;
+    }
+    else
+    {
+        Vsalida = 0.0;
+    }
 
     //alberca nivel está en centimetros
     double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
@@ -270,7 +263,6 @@ void MainWindow::on_horizontalSlider_lluvia_sliderMoved(int position)
 void MainWindow::on_pushButton_abrir_clicked()
 {
     valvula->setValvula_estado(VALVULA_ABIERTA);
-    retardo = 0;
     ui->label_valvula->setText("Válvula abierta");
 }
 
