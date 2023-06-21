@@ -5,15 +5,13 @@
 #include "lluvia.h"
 #include "valvula.h"
 #include "basededatos.h"
+
 #include <QtMath>
 #include <QGraphicsRectItem>
 #include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
-#include <QPainter>
-#include <QString>
 #include <QMessageBox>
-
 
 int T = 1000;
 
@@ -27,6 +25,8 @@ double Vsalida;
 
 float T2;
 
+bool desborde = false;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::MainWindow)
@@ -35,7 +35,8 @@ MainWindow::MainWindow(QWidget *parent)
 
    alberca = new Alberca(ui->doubleSpinBox_albercaInit->value(),
                          ui->doubleSpinBox_albercaMax->value(),
-                         ui->doubleSpinBox_albercaArea->value());
+                         ui->doubleSpinBox_albercaArea->value(),
+                         ui->doubleSpinBox_albercaInit->value());
 
    lluvia = new Lluvia(ui->doubleSpinBox_lluviaInit->value());
 
@@ -49,29 +50,31 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->horizontalSlider_acequia, &QSlider::valueChanged, this, &MainWindow::on_horizontalSlider_acequia_sliderMoved);
     connect(ui->pushButton_abrir, SIGNAL(clicked()), this, SLOT(on_pushButton_abrir_clicked()));
     connect(ui->pushButton_cerrar, SIGNAL(clicked()), this, SLOT(on_pushButton_cerrar_clicked()));
-    connect(ui->pushButton_Cargar, &QPushButton::clicked, this, &MainWindow::on_pushButton_Cargar_clicked);
-    connect(ui->pushButton_Guardar, &QPushButton::clicked, this, &MainWindow::on_pushButton_Guardar_clicked);
 
-
-    scene = new QGraphicsScene(this);
-
-    ui->graphicsView->setScene(scene);
-    mostrarAlberca();
-    mostrarValvula(valvula->getValvula_estado());
     timerSimulacion = new QTimer();
     timerSimulacion->setInterval(T);
     connect(timerSimulacion, SIGNAL(timeout()), this, SLOT(paso_simulador()));
     Qacequia = acequia->getACaudal_agua();
     Qlluvia = lluvia->getLluvia_caudal();
 
+    scene = new QGraphicsScene(this);
+
+    albercaDibujo = new QGraphicsRectItem();
+
+    ui->graphicsView->setScene(scene);
+    mostrarAcequia();
+    mostrarAlberca();
+    mostrarValvula(valvula->getValvula_estado());
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
 void MainWindow::paso_simulador()
 {
+    desborde = false;
     Qacequia = (acequia->getACaudal_max()) * static_cast<double>(ui->horizontalSlider_acequia->value()) /100000.0;
 
     Vacequia = T * Qacequia;
@@ -93,35 +96,21 @@ void MainWindow::paso_simulador()
         Vsalida = 0.0;
     }
 
-    //alberca nivel está en centimetros
     double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
-    alberca->setNivel_real(nuevoNivel_real);
 
-    mostrarAcequia(nuevoNivel_real);
-    mostrarAlberca();
-    mostrarValvula(valvula->getValvula_estado());
-
-    qreal waterLevel = static_cast<qreal>(nuevoNivel_real) / (alberca->getNivel_max());
-    qreal waterHeight = waterLevel * (alberca->getArea_base());
-    qreal viewHeight = ui->graphicsView->viewport()->size().height();
-    qreal waterY = viewHeight - waterHeight;
-    QRectF waterRect(0, waterY, (alberca->getArea_base()), waterHeight);
-    QGraphicsRectItem* waterItem = new QGraphicsRectItem(waterRect);
-    waterItem->setBrush(Qt::blue);
-    waterItem->setPen(Qt::NoPen);
-
-    if (nuevoNivel_real<(alberca->getNivel_max()))
+    if (nuevoNivel_real <= 0)
     {
+        nuevoNivel_real = 0;
+    }
+    else if (nuevoNivel_real > (alberca->getNivel_max()))
+    {
+        desborde = true;
+        ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_max()) + "cm");
+    }
+
     ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
-    }
-    if (nuevoNivel_real<0)
-    {
-    ui->label_nivelTotal->setText("Nivel: " + QString::number(0) + "cm");
-    }
-    if (nuevoNivel_real > (alberca->getNivel_max()))
-    {
-     ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_max()) + "cm");
-    }
+
+    alberca->setNivel_real(nuevoNivel_real);
 
     ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
     ui->labelQcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
@@ -140,14 +129,18 @@ void MainWindow::paso_simulador()
         ui->label_valvula->setText("Válvula abierta");
     }
 
-    QString nombre = ui->lineEdit_nombre->text();
-    alberca->setNombre(nombre);
+    mostrarAcequia();
+    albercaCambio(nuevoNivel_real);
+    mostrarValvula(valvula->getValvula_estado());
 
+    if (desborde == true)
+    {
+        QMessageBox::warning(this, "Alerta", "La alberca se está desbordando");
+    }
 }
 
 void MainWindow::on_pushButton_start_clicked()
 {
-
     timerSimulacion->start();
     ui->pushButton_start->setEnabled(false);
     ui->doubleSpinBox_acequiaInit->setEnabled(false);
@@ -162,8 +155,6 @@ void MainWindow::on_pushButton_start_clicked()
     ui->horizontalSlider_acequia->setEnabled(true);
     ui->horizontalSlider_lluvia->setEnabled(true);
 
-
-
     double Spinboxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
     valvula->setValvula_radio(Spinboxvalvula);
 
@@ -173,22 +164,20 @@ void MainWindow::on_pushButton_start_clicked()
     double valorSpinboxlluvia= ui->doubleSpinBox_lluviaInit->value();
     lluvia->setLluvia_caudal(valorSpinboxlluvia);
 
-    //alberca
     double Spinbox_albercamax = ui->doubleSpinBox_albercaMax->value();
     alberca->setNivel_max(Spinbox_albercamax);
     double Spinbox_albercaint = ui->doubleSpinBox_albercaInit->value();
     alberca->setNivel_init(Spinbox_albercaint);
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_real()) + "cm");
 
-    //acequia
     double Spinbox_acequiainit= ui->doubleSpinBox_acequiaInit->value();
     acequia->setACaudal_agua(Spinbox_acequiainit);
 
     double Spinbox_acequiamax= ui->doubleSpinBox_acequiaMax->value();
     acequia->setACaudal_max(Spinbox_acequiamax);
 
+    albercaCambio(alberca->getNivel_real());
 
-   // mostrarAlberca();
-   // mostrarAcequia(0);
 }
 
 void MainWindow::on_pushButton_pause_clicked()
@@ -205,7 +194,26 @@ void MainWindow::on_pushButton_pause_clicked()
     ui->doubleSpinBox_valvulaRadio->setEnabled(true);
     ui->horizontalSlider_acequia->setEnabled(false);
     ui->horizontalSlider_lluvia->setEnabled(false);
+    albercaCambio(alberca->getNivel_real());
 }
+
+void MainWindow::on_pushButton_reset_clicked()
+{
+    ui->pushButton_reset->setEnabled(1);
+    T2=0;
+    Qdesague=0;
+    Qacequia=0;
+    Qlluvia=0;
+
+    valuesConfig();
+
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(ui->doubleSpinBox_albercaInit->value()) + "cm");
+    alberca->setNivel_init(ui->doubleSpinBox_albercaInit->value());
+    mostrarAcequia();
+    albercaCambio(alberca->getNivel_init());
+    mostrarValvula(valvula->getValvula_estado());
+}
+
 
 void MainWindow::on_radioButton_1x_clicked()
 {
@@ -227,35 +235,6 @@ void MainWindow::on_radioButton_250x_clicked()
     T = 4;
 }
 
-void MainWindow::on_pushButton_reset_clicked()
-{
-    ui->pushButton_reset->setEnabled(1);
-    T2=0;
-
-    //    double valorSpinBoxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
-    //    valvula->setValvula_radio(ui-> doubleSpinBox_valvulaRadio->value());
-
-    //    double valorSpinBoxbase= ui->doubleSpinBox_albercaArea->value();
-    //    alberca->setArea_base(valorSpinBoxbase);
-
-    //    double valorSpinBoxacaudal = ui->doubleSpinBox_acequiaMax->value();
-    //    acequia->setACaudal_max(valorSpinBoxacaudal);
-
-    //    double valorSpinboxamax = ui->doubleSpinBox_albercaMax->value();
-    //    alberca->setNivel_max(valorSpinboxamax);
-
-    Qdesague=0;
-    Qacequia=0;
-    Qlluvia=0;
-
-    valuesConfig();
-
-    ui->label_nivelTotal->setText("Nivel: " + QString::number(ui->doubleSpinBox_albercaInit->value()) + "cm");
-    alberca->setNivel_init(ui->doubleSpinBox_albercaInit->value());
-    scene->clear();
-    mostrarAlberca();
-    mostrarValvula(valvula->getValvula_estado());
-}
 
 void MainWindow::on_horizontalSlider_acequia_sliderMoved(int position)
 {
@@ -283,9 +262,8 @@ void MainWindow::on_pushButton_cerrar_clicked()
 
 }
 
-void MainWindow::mostrarAlberca()
+void MainWindow::mostrarAcequia()
 {
-
     QPen contorno;
     QBrush relleno;
 
@@ -296,18 +274,17 @@ void MainWindow::mostrarAlberca()
     relleno.setColor(QColor(255,255,255));
     relleno.setStyle(Qt::BrushStyle::SolidPattern);
 
-    albercaIzq = new QGraphicsLineItem;
-    albercaDer = new QGraphicsLineItem;
-    albercaSuelo = new QGraphicsLineItem;
+    acequiaIzq = new QGraphicsLineItem;
+    acequiaDer = new QGraphicsLineItem;
+    acequiaSuelo = new QGraphicsLineItem;
 
-    albercaIzq->setPen(contorno);
-    albercaDer->setPen(contorno);
-    albercaSuelo->setPen(contorno);
+    acequiaIzq->setPen(contorno);
+    acequiaDer->setPen(contorno);
+    acequiaSuelo->setPen(contorno);
 
-
-    albercaIzq->setLine(0.0,0.0,0.0,-(alberca->getNivel_max()));
-    albercaDer->setLine((alberca->getArea_base()),0.0,(alberca->getArea_base()),-(alberca->getNivel_max()));
-    albercaSuelo->setLine(0.0,0.0,alberca->getArea_base(),0.0);
+    acequiaIzq->setLine(0.0,0.0,0.0,-(alberca->getNivel_max()));
+    acequiaDer->setLine((alberca->getArea_base()),0.0,(alberca->getArea_base()),-(alberca->getNivel_max()));
+    acequiaSuelo->setLine(0.0,0.0,alberca->getArea_base(),0.0);
 
     contorno.setColor(QColor(255,255,255));
 
@@ -315,19 +292,16 @@ void MainWindow::mostrarAlberca()
     espacioLluvia->setPen(contorno);
     espacioLluvia->setBrush(relleno);
 
+    QGraphicsItemGroup *group = new QGraphicsItemGroup();
+    group->addToGroup(acequiaIzq);
+    group->addToGroup(acequiaDer);
+    group->addToGroup(acequiaSuelo);
 
-  //  espacioLluvia->setRect(0.0,-251.0, 300.0,-50.0);
-    // Create a group and add the rectangles to it
-       QGraphicsItemGroup *group = new QGraphicsItemGroup();
-       group->addToGroup(albercaIzq);
-       group->addToGroup(albercaDer);
-        group->addToGroup(albercaSuelo);
-       // Add the group to the scene
-       scene->addItem(group);
+    scene->addItem(group);
 
 }
 
-void MainWindow::mostrarAcequia(double nivelm)
+void MainWindow::mostrarAlberca()
 {
     QPen contorno;
     QBrush relleno;
@@ -341,24 +315,30 @@ void MainWindow::mostrarAcequia(double nivelm)
     relleno.setColor(QColor(173,216,230));
     relleno.setStyle(Qt::BrushStyle::SolidPattern);
 
-    QGraphicsRectItem *acequiaDibujo = new QGraphicsRectItem();
+    albercaDibujo = new QGraphicsRectItem();
 
-    acequiaDibujo->setPen(contorno);
-    acequiaDibujo->setBrush(relleno);
+    albercaDibujo->setPen(contorno);
+    albercaDibujo->setBrush(relleno);
 
-if ( nivelm<=240){
-    acequiaDibujo->setRect(1.0,0.0, (alberca->getArea_base())-1,-nivelm);
-}else{
-    acequiaDibujo->setRect(1.0,0.0, (alberca->getArea_base())-1,-240);
-}
+    albercaDibujo->setRect(1.0,0.0, (alberca->getArea_base()-1),0);
 
-    QGraphicsItemGroup *group2 = new QGraphicsItemGroup();
-    group2->addToGroup(acequiaDibujo);
-
-    // Add the group to the scene
+    QGraphicsItemGroup* group2 = new QGraphicsItemGroup();
+    group2->addToGroup(albercaDibujo);
     scene->addItem(group2);
 
+}
 
+void MainWindow::albercaCambio(double nivel)
+{
+    if ((nivel <= alberca->getNivel_max()) && (nivel > 0))
+    {
+        albercaDibujo->setRect(1.0, 0.0, (alberca->getArea_base() - 1), -nivel);
+    }
+    else if (nivel <= 0)
+    {
+        albercaDibujo->setRect(1.0, 0.0, (alberca->getArea_base() - 1), 0);
+    }
+    scene->update();
 }
 
 void MainWindow::mostrarValvula(bool activado)
@@ -375,16 +355,11 @@ void MainWindow::mostrarValvula(bool activado)
     valvulaRect->setPen(contorno);
     valvulaRect->setBrush(relleno);
 
-
     valvulaRect->setRect((alberca->getArea_base()),0.0, 100.0,-10.0);
-
 
     contorno.setColor(QColor(80,16,110));
     contorno.setWidth(1); // grosor
     contorno.setStyle(Qt::PenStyle::SolidLine);
-
-
-    //QColor(173,216,230)
 
     QPolygonF forma;
 
@@ -393,26 +368,15 @@ void MainWindow::mostrarValvula(bool activado)
 
     relleno.setStyle(Qt::BrushStyle::SolidPattern);
 
-    //QpointF
-
-   //forma.setPolygon();
-
-    //forma.append(QPointF(int x, int y));
-
-
     forma << QPointF((alberca->getArea_base())+35.0, 10.0) << QPointF((alberca->getArea_base())+65.0, 10.0) << QPointF((alberca->getArea_base())+35.0, -20.0) << QPointF((alberca->getArea_base())+65.0, -20.0);
-    //forma << QPointF(335.0, 10.0) << QPointF(365.0, 10.0) << QPointF(335.0, -20.0) << QPointF(365.0, -20.0);
 
     forma.isClosed();
-   //~QAbstractGraphicsShapeItem( ¿?);
 
     valvulaTring = new QGraphicsPolygonItem;
 
     valvulaTring->setPen(contorno);
     valvulaTring->setBrush(relleno);
     valvulaTring->setPolygon(forma);   //para decirle que sea un triangulo
-
-
 
     scene->addItem(valvulaRect);
     scene->addItem(valvulaTring);
@@ -428,6 +392,8 @@ void MainWindow::on_doubleSpinBox_albercaMax_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBox_albercaInit_valueChanged(double arg1)
 {
     alberca->setNivel_init(arg1);
+    alberca->setNivel_real(arg1);
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_init()) + "cm");
 }
 
 
@@ -498,12 +464,15 @@ void MainWindow::on_pushButton_Guardar_clicked()
     Valvula valvula;
     valvula.setValvula_radio(ui->doubleSpinBox_valvulaRadio->value());
 
-    if (db.conectar()) {
+    if (db.conectar())
+    {
         db.guardarConfiguracion(alberca, acequia, lluvia, valvula);
 
         // Mostrar un mensaje de éxito de guardado
         QMessageBox::information(this, "Éxito", "La configuración se ha guardado correctamente en la base de datos.");
-    } else {
+    }
+    else
+    {
         // Mostrar un mensaje de error si no se pudo establecer la conexión
         QMessageBox::warning(this, "Error", "No se pudo establecer la conexión a la base de datos.");
     }
@@ -549,6 +518,3 @@ void MainWindow::on_pushButton_Cargar_clicked()
         QMessageBox::warning(this, "Error", "No se pudo establecer la conexión a la base de datos.");
     }
 }
-
-
-

@@ -10,8 +10,7 @@ private:
 
 public:
     Acequia();
-    Acequia(double caudal_agua, double caudal_max); //variables a definir en la configuración de la simulación
-
+    Acequia(double caudal_agua, double caudal_max);
 
     double getACaudal_agua() const;
     void setACaudal_agua(double newACaudal_agua);

@@ -30,16 +30,17 @@ public:
 
     double surface(double radius);
 
-private slots:
+    void albercaCambio(double nivel);
 
-    void paso_simulador();
-
+    void mostrarAcequia();
 
     void mostrarAlberca();
 
-    void mostrarAcequia(double nivelm);
-
     void mostrarValvula(bool activado);
+
+private slots:
+
+    void paso_simulador();
 
     void on_pushButton_start_clicked();
 
@@ -78,6 +79,7 @@ private slots:
     void on_doubleSpinBox_valvulaRadio_valueChanged(double arg1);
 
     void on_pushButton_Cargar_clicked();
+
     void on_pushButton_Guardar_clicked();
 
 private:
@@ -85,13 +87,13 @@ private:
     QTimer *timerSimulacion;
 
     //Escena/imagen
-    QGraphicsLineItem *albercaIzq;
-    QGraphicsLineItem *albercaDer;
-    QGraphicsLineItem *albercaSuelo;
+    QGraphicsLineItem *acequiaIzq;
+    QGraphicsLineItem *acequiaDer;
+    QGraphicsLineItem *acequiaSuelo;
     QGraphicsRectItem *espacioLluvia;
     QGraphicsItemGroup *group;
 
-    QGraphicsRectItem *acequiaDibujo;
+    QGraphicsRectItem *albercaDibujo;
 
     QGraphicsPolygonItem *valvulaTring;
     QGraphicsRectItem *valvulaRect;
