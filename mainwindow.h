@@ -11,6 +11,7 @@
 #include <QGraphicsView>
 #include <QMainWindow>
 #include <QTimer>
+#include <QString>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -37,6 +38,10 @@ public:
     void mostrarAlberca();
 
     void mostrarValvula(bool activado);
+
+    void CrearAlberca();
+
+    void AlbercaCambiada(QString nombre);
 
 private slots:
 
@@ -82,6 +87,8 @@ private slots:
 
     void on_pushButton_Guardar_clicked();
 
+    void albercaCreada(configuracion &c);
+
 private:
     Ui::MainWindow *ui;
     QTimer *timerSimulacion;
@@ -109,5 +116,11 @@ private:
     Valvula* valvula;
 
     BaseDeDatos db;
+
+    QList<configuracion *> listaAlberca;
+
+    configuracion * albercaActiva = nullptr;
+
+     bool dbConectada = false;
 };
 #endif // MAINWINDOW_H

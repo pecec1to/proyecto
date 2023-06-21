@@ -1,5 +1,5 @@
-
-#include "basededatos.h"
+#include "BaseDeDatos.h"
+#include "configuracion.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -11,103 +11,143 @@ BaseDeDatos::BaseDeDatos()
 bool BaseDeDatos::conectar()
 {
     database = QSqlDatabase::addDatabase("QSQLITE");
-    database.setDatabaseName("db_simulador");
-
-    if (!database.open()) {
-        qDebug() << "Error al abrir la base de datos:" << database.lastError().text();
-        return false;
-    }
-
-    qDebug() << "Conexión a la base de datos establecida correctamente.";
-    return true;
+    database.setDatabaseName("db_alberca");
+    return database.open();
 }
 
 void BaseDeDatos::crearTablaAlberca()
 {
     if (!database.isOpen()) {
-        qDebug() << "Error: no se ha establecido una conexión a la base de datos.";
+        qDebug().noquote().nospace()<< "crearTablas(): La base de datos no está conectada.";
         return;
     }
 
     QSqlQuery query(database);
-    query.exec("CREATE TABLE IF NOT EXISTS alberca ("
-               "nombre TEXT PRIMARY KEY,"
-               "nivel_max REAL,"
-               "area_base REAL,"
-               "nivel_init REAL,"
-               "acequia_caudal_agua REAL,"
-               "acequia_caudal_max REAL,"
-               "lluvia_caudal REAL,"
-               "valvula_radio REAL"
-               ")");
-    if (!query.exec()) {
-        qDebug() << "Error al crear la tabla alberca:" << query.lastError().text();
-        return;
+
+    query.prepare("CREATE TABLE IF NOT EXISTS alberca (nombre VARCHAR(30) PRIMARY KEY, ac_caudal REAL, ac_caudal_max REAL, areabase REAL, n_init REAL, n_max REAL, c_lluvia REAL, valvula_r REAL);");
+
+    if (!query.exec())
+    {
+        qDebug().noquote().nospace() << "Error al crear la tabla de la alberca: " <<  query.lastError().text();
     }
 
-    qDebug() << "Tabla alberca creada correctamente.";
 }
 
-void BaseDeDatos::guardarConfiguracion(const Alberca& alberca, const Acequia& acequia, const Lluvia& lluvia, const Valvula& valvula)
+
+void BaseDeDatos::guardarAlberca(const configuracion &c)
 {
     if (!database.isOpen()) {
-        qDebug() << "Error: no se ha establecido una conexión a la base de datos.";
+        qDebug().noquote().nospace() << "guardarAlberca(): La base de datos no está conectada.";
         return;
     }
 
     QSqlQuery query(database);
-    query.prepare("INSERT OR REPLACE INTO alberca (nombre, nivel_max, area_base, nivel_init, acequia_caudal_agua, acequia_caudal_max, lluvia_caudal, valvula_radio) "
-                  "VALUES (:nombre, :nivel_max, :area_base, :nivel_init, :acequia_caudal_agua, :acequia_caudal_max, :lluvia_caudal, :valvula_radio)");
 
-    query.bindValue(":nombre", alberca.getNombre());
-    query.bindValue(":nivel_max", alberca.getNivel_max());
-    query.bindValue(":area_base", alberca.getArea_base());
-    query.bindValue(":nivel_init", alberca.getNivel_init());
-    query.bindValue(":acequia_caudal_agua", acequia.getACaudal_agua());
-    query.bindValue(":acequia_caudal_max", acequia.getACaudal_max());
-    query.bindValue(":lluvia_caudal", lluvia.getLluvia_caudal());
-    query.bindValue(":valvula_radio", valvula.getValvula_radio());
+    query.prepare("REPLACE INTO alberca (nombre, ac_caudal, ac_caudal_max, n_init, n_max, areabase, c_lluvia, valvula_r) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+
+    query.addBindValue(c.getNombre());
+    query.addBindValue(c.getAc_caudal());
+    query.addBindValue(c.getAc_caudal_max());
+    query.addBindValue(c.getN_init());
+    query.addBindValue(c.getN_max());
+    query.addBindValue(c.getAreabase());
+    query.addBindValue(c.getC_lluvia());
+    query.addBindValue(c.getValvula_r());
 
     if (!query.exec()) {
-        qDebug() << "Error al guardar la configuración en la base de datos:" << query.lastError().text();
-        return;
+        qDebug().noquote().nospace() << "Error al insertar en la tabla alberca: " << query.lastError().text();
     }
-
-    qDebug() << "Configuración guardada correctamente en la base de datos.";
 }
 
-void BaseDeDatos::cargarConfiguracion(const QString& nombre, Alberca& alberca, Acequia& acequia, Lluvia& lluvia, Valvula& valvula)
+
+void BaseDeDatos::cargarAlberca(const configuracion &c)
+{
+         if (!database.isOpen()) {
+            qDebug().noquote().nospace() << "CargarAlberca(): La base de datos no está conectada.";
+            return;
+        }
+
+        QSqlQuery query(database);
+
+        query.prepare("UPDATE configuraciones SET ac_caudal = ?, ac_caudal_max = ?, n_init = ?, n_max = ?, areabase = ?, c_lluvia = ?, valvula_r = ? WHERE nombre = ?;");
+
+        query.addBindValue(c.getAc_caudal());
+        query.addBindValue(c.getAc_caudal_max());
+        query.addBindValue(c.getN_init());
+        query.addBindValue(c.getN_max());
+        query.addBindValue(c.getAreabase());
+        query.addBindValue(c.getC_lluvia());
+        query.addBindValue(c.getValvula_r());
+        query.addBindValue(c.getNombre());
+
+        if (!query.exec()) {
+            qDebug().noquote().nospace() << "Error al cargar en la tabla las configuraciones: " << query.lastError().text();
+        }
+
+}
+
+configuracion* BaseDeDatos::leerAlberca(const QString &nombre)
 {
     if (!database.isOpen()) {
-        qDebug() << "Error: no se ha establecido una conexión a la base de datos.";
-        return;
+        qDebug().noquote().nospace() << "leerAlberca(): La base de datos no está conectada.";
+        return nullptr;
     }
 
     QSqlQuery query(database);
-    query.prepare("SELECT * FROM alberca WHERE nombre = :nombre");
-    query.bindValue(":nombre", nombre);
+
+    query.prepare("SELECT nombre, ac_caudal, ac_caudal_max, n_init, n_max, areabase, c_lluvia, valvula_r FROM alberca WHERE nombre = ?;");
+    query.addBindValue(nombre);
 
     if (!query.exec()) {
-        qDebug() << "Error al cargar la configuración desde la base de datos:" << query.lastError().text();
-        return;
+        qDebug().noquote().nospace() << "Error en leerAlberca: " << query.lastError().text();
+        return nullptr;
     }
+
+    configuracion *c = nullptr;
 
     if (query.next()) {
-        alberca.setNombre(query.value("nombre").toString());
-        alberca.setNivel_max(query.value("nivel_max").toDouble());
-        alberca.setArea_base(query.value("area_base").toDouble());
-        alberca.setNivel_init(query.value("nivel_init").toDouble());
-
-        acequia.setACaudal_agua(query.value("acequia_caudal_agua").toDouble());
-        acequia.setACaudal_max(query.value("acequia_caudal_max").toDouble());
-
-        lluvia.setLluvia_caudal(query.value("lluvia_caudal").toDouble());
-
-        valvula.setValvula_radio(query.value("valvula_radio").toDouble());
-
-        qDebug() << "Configuración cargada correctamente desde la base de datos.";
-    } else {
-        qDebug() << "No se encontró ninguna configuración en la base de datos para el nombre:" << nombre;
+        c = new configuracion();
+        c->setNombre(query.value(0).toString());
+        c->setAc_caudal(query.value(1).toDouble());
+        c->setAc_caudal_max(query.value(2).toDouble());
+        c->setN_init(query.value(3).toDouble());
+        c->setN_max(query.value(4).toDouble());
+        c->setAreabase(query.value(5).toDouble());
+        c->setC_lluvia(query.value(6).toDouble());
+        c->setValvula_r(query.value(7).toDouble());
     }
+    return c;
 }
 
+
+QList<QString>* BaseDeDatos::leerNombreAlberca()
+{
+    if (!database.isOpen()) {
+        qDebug().noquote().nospace()<< "leerNombreAlberca(): La base de datos no está conectada.";
+        return nullptr;
+    }
+    if (!database.isOpen()) {
+        qDebug().noquote().nospace()<< "leerNombreAlberca(): La base de datos no está conectada.";
+        return nullptr;
+    }
+
+    QSqlQuery query(database);
+
+    query.prepare("SELECT nombre FROM alberca;");
+
+    if(!query.exec())
+    {
+        qDebug().noquote().nospace() << "Error en leerNombreAlberca(): " <<query.lastError().text();
+        return nullptr;
+    }
+
+    QList<QString> *list = new QList<QString>();
+
+    while(query.next())
+    {
+        QString s;
+        s = query.value(0).toString();
+        list->append(s);
+    }
+    return list;
+}

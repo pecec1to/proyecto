@@ -12,6 +12,7 @@ SOURCES += \
     acequia.cpp \
     alberca.cpp \
     basededatos.cpp \
+    configuracion.cpp \
     lluvia.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -21,6 +22,7 @@ HEADERS += \
     acequia.h \
     alberca.h \
     basededatos.h \
+    configuracion.h \
     lluvia.h \
     mainwindow.h \
     valvula.h
