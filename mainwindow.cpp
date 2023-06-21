@@ -49,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
 
    acequia = new Acequia(ui->horizontalSlider_acequia->value(),
                          ui->doubleSpinBox_acequiaMax->value());
+   valvula->setValvula_estado(VALVULA_CERRADA);
 
     connect(ui->horizontalSlider_lluvia, &QSlider::valueChanged, this, &MainWindow::on_horizontalSlider_lluvia_sliderMoved);
     connect(ui->horizontalSlider_acequia, &QSlider::valueChanged, this, &MainWindow::on_horizontalSlider_acequia_sliderMoved);
@@ -58,11 +59,13 @@ MainWindow::MainWindow(QWidget *parent)
     scene = new QGraphicsScene(this);
 
     ui->graphicsView->setScene(scene);
-
+    mostrarAlberca();
+    mostrarValvula(valvula->getValvula_estado());
     timerSimulacion = new QTimer();
     timerSimulacion->setInterval(T);
     connect(timerSimulacion, SIGNAL(timeout()), this, SLOT(paso_simulador()));
-
+    Qacequia = acequia->getACaudal_agua();
+    Qlluvia = lluvia->getLluvia_caudal();
 
 }
 
@@ -74,26 +77,26 @@ void MainWindow::paso_simulador()
 {
 
     retardo++;
-    Qacequia = acequia->getACaudal_agua();
-    Qlluvia = lluvia->getLluvia_caudal();
+
+    Qacequia = (acequia->getACaudal_max()) * static_cast<double>(ui->horizontalSlider_acequia->value()) /100000.0;
 
     Vacequia = T * Qacequia;
     Vlluvia = T * Qlluvia;
     Ventrada = Vacequia + Vlluvia;
 
-    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo > 15)
+    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo>15)
     {        //se divide el nivel de la alberca entre 100 para pasarlo a metros
-        Qdesague = (2 * 3.1415 * (valvula->getValvula_radio())) * sqrt(2 * 9.8 * (static_cast<double>(alberca->getNivel_real())/100.0));
+        Qdesague = (surface(valvula->getValvula_radio()) * (sqrt(2 * 9.8 * ((alberca->getNivel_real())/100.0))));
     } else {
         Qdesague = 0;
     }
+
     Vsalida = T * Qdesague;
 
     //alberca nivel está en centimetros
     double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
     alberca->setNivel_real(nuevoNivel_real);
 
-   // scene->clear();
     mostrarAcequia(nuevoNivel_real);
     mostrarAlberca();
     mostrarValvula(valvula->getValvula_estado());
@@ -107,18 +110,23 @@ void MainWindow::paso_simulador()
     waterItem->setBrush(Qt::blue);
     waterItem->setPen(Qt::NoPen);
 
-    //scene->addItem(waterItem);
-    if (nuevoNivel_real<240){
+    if (nuevoNivel_real<(alberca->getNivel_max()))
+    {
     ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
-    }else{
-     ui->label_nivelTotal->setText("Nivel: 240cm");
-
+    }
+    if (nuevoNivel_real<0)
+    {
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(0) + "cm");
+    }
+    if (nuevoNivel_real > (alberca->getNivel_max()))
+    {
+     ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_max()) + "cm");
     }
 
     ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
-    ui->Qcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
-    ui->Qdesague->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
-    ui->Qacequia->setText("Qacequiamax: " + QString::number(acequia->getACaudal_max()) + "m^3/s");
+    ui->labelQcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
+    ui->labelQdesague->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
+    ui->labelQacequia->setText("Qacequiamax: " + QString::number(acequia->getACaudal_max()) + "m^3/s");
 
     T2 = T2 + T/1000.0;
     ui->label_21->setText("Tiempo simulado: " + QString::number(T2)+ " s");
@@ -220,23 +228,27 @@ void MainWindow::on_pushButton_reset_clicked()
 {
     ui->pushButton_reset->setEnabled(1);
     T2=0;
-    double valorSpinBoxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
-    valvula->setValvula_radio(valorSpinBoxvalvula);
 
-    double valorSpinBoxbase= ui->doubleSpinBox_albercaArea->value();
-    alberca->setArea_base(valorSpinBoxbase);
+    //    double valorSpinBoxvalvula= ui-> doubleSpinBox_valvulaRadio->value();
+    //    valvula->setValvula_radio(ui-> doubleSpinBox_valvulaRadio->value());
 
-    double valorSpinBoxacaudal = ui->doubleSpinBox_acequiaMax->value();
-    acequia->setACaudal_max(valorSpinBoxacaudal);
+    //    double valorSpinBoxbase= ui->doubleSpinBox_albercaArea->value();
+    //    alberca->setArea_base(valorSpinBoxbase);
 
-    double valorSpinboxamax = ui->doubleSpinBox_albercaMax->value();
-    alberca->setNivel_max(valorSpinboxamax);
+    //    double valorSpinBoxacaudal = ui->doubleSpinBox_acequiaMax->value();
+    //    acequia->setACaudal_max(valorSpinBoxacaudal);
+
+    //    double valorSpinboxamax = ui->doubleSpinBox_albercaMax->value();
+    //    alberca->setNivel_max(valorSpinboxamax);
 
     Qdesague=0;
     Qacequia=0;
     Qlluvia=0;
 
-    alberca->setNivel_real(0);
+    valuesConfig();
+
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(ui->doubleSpinBox_albercaInit->value()) + "cm");
+    alberca->setNivel_init(ui->doubleSpinBox_albercaInit->value());
     scene->clear();
     mostrarAlberca();
     mostrarValvula(valvula->getValvula_estado());
@@ -244,7 +256,7 @@ void MainWindow::on_pushButton_reset_clicked()
 
 void MainWindow::on_horizontalSlider_acequia_sliderMoved(int position)
 {
-    Qacequia = (acequia->getACaudal_max())* static_cast<double>(position) /100000.0;
+    Qacequia = (acequia->getACaudal_max()) * static_cast<double>(position) /100000.0;
     ui->label_acequiaPorcent->setText("Porcentaje: " + QString::number(position) + "%");
     ui->label_acequiaCaudal->setText("Caudal: " + QString::number(Qacequia) + " m^3/s");
 }
@@ -405,3 +417,61 @@ void MainWindow::mostrarValvula(bool activado)
 
 }
 
+void MainWindow::on_doubleSpinBox_albercaMax_valueChanged(double arg1)
+{
+    alberca->setNivel_max(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_albercaInit_valueChanged(double arg1)
+{
+    alberca->setNivel_init(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_albercaArea_valueChanged(double arg1)
+{
+    alberca->setArea_base(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_acequiaMax_valueChanged(double arg1)
+{
+    acequia->setACaudal_max(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_acequiaInit_valueChanged(double arg1)
+{
+    acequia->setACaudal_agua(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_lluviaInit_valueChanged(double arg1)
+{
+    lluvia->setLluvia_caudal(arg1);
+}
+
+
+void MainWindow::on_doubleSpinBox_valvulaRadio_valueChanged(double arg1)
+{
+    valvula->setValvula_radio(arg1);
+}
+
+void MainWindow::valuesConfig()
+{
+    alberca->setArea_base(ui->doubleSpinBox_albercaArea->value());
+    alberca->setNivel_init(ui->doubleSpinBox_albercaInit->value());
+    alberca->setNivel_max(ui->doubleSpinBox_albercaMax->value());
+    alberca->setNivel_real(ui->doubleSpinBox_albercaInit->value());
+    acequia->setACaudal_agua(ui->doubleSpinBox_acequiaInit->value());
+    acequia->setACaudal_max(ui->doubleSpinBox_acequiaMax->value());
+    lluvia->setLluvia_caudal(ui->doubleSpinBox_lluviaInit->value());
+    valvula->setValvula_radio(ui->doubleSpinBox_valvulaRadio->value());
+    valvula->setValvula_estado(VALVULA_CERRADA);
+}
+
+double MainWindow::surface(double radius)
+{
+    return (3.1415 * radius *2);
+}

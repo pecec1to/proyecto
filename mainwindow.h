@@ -20,13 +20,25 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
+
     MainWindow(QWidget *parent = nullptr);
 
     ~MainWindow();
 
+    void valuesConfig();
+
+    double surface(double radius);
 
 private slots:
+
     void paso_simulador();
+
+
+    void mostrarAlberca();
+
+    void mostrarAcequia(double nivelm);
+
+    void mostrarValvula(bool activado);
 
     void on_pushButton_start_clicked();
 
@@ -50,11 +62,21 @@ private slots:
 
     void on_pushButton_cerrar_clicked();
 
-    void mostrarAlberca();
+    void on_horizontalSlider_acequia_valueChanged(int value);
 
-    void mostrarAcequia(double nivelm);
+    void on_doubleSpinBox_albercaMax_valueChanged(double arg1);
 
-    void mostrarValvula(bool activado);
+    void on_doubleSpinBox_albercaInit_valueChanged(double arg1);
+
+    void on_doubleSpinBox_albercaArea_valueChanged(double arg1);
+
+    void on_doubleSpinBox_acequiaMax_valueChanged(double arg1);
+
+    void on_doubleSpinBox_acequiaInit_valueChanged(double arg1);
+
+    void on_doubleSpinBox_lluviaInit_valueChanged(double arg1);
+
+    void on_doubleSpinBox_valvulaRadio_valueChanged(double arg1);
 
 private:
     Ui::MainWindow *ui;
