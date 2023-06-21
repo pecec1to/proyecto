@@ -518,21 +518,37 @@ void MainWindow::on_pushButton_Cargar_clicked()
     Lluvia lluvia;
     Valvula valvula;
 
-    if (db.conectar() && db.cargarConfiguracion(nombre, alberca, acequia, lluvia, valvula)) {
-        // Configuración cargada correctamente, actualizar los valores en las spinboxes
-        ui->doubleSpinBox_albercaMax->setValue(alberca.getNivel_max());
-        ui->doubleSpinBox_albercaArea->setValue(alberca.getArea_base());
-        ui->doubleSpinBox_albercaInit->setValue(alberca.getNivel_init());
-        ui->doubleSpinBox_acequiaInit->setValue(acequia.getACaudal_agua());
-        ui->doubleSpinBox_acequiaMax->setValue(acequia.getACaudal_max());
-        ui->doubleSpinBox_lluviaInit->setValue(lluvia.getLluvia_caudal());
-        ui->doubleSpinBox_valvulaRadio->setValue(valvula.getValvula_radio());
+    if (db.conectar())
+    {
+        db.cargarConfiguracion(nombre, alberca, acequia, lluvia, valvula);
 
-        // Mostrar un mensaje de éxito de carga
-        QMessageBox::information(this, "Éxito", "La configuración se ha cargado correctamente desde la base de datos.");
-    } else {
-        // Mostrar un mensaje de error si no se encuentra la configuración en la base de datos
-        QMessageBox::warning(this, "Error", "No se encontró ninguna configuración en la base de datos con el nombre especificado.");
+        // Verificar si se cargó correctamente
+        if (alberca.getNombre() == nombre)
+        {
+            // Configuración cargada correctamente, actualizar los valores en las spinboxes
+            ui->doubleSpinBox_albercaMax->setValue(alberca.getNivel_max());
+            ui->doubleSpinBox_albercaArea->setValue(alberca.getArea_base());
+            ui->doubleSpinBox_albercaInit->setValue(alberca.getNivel_init());
+            ui->doubleSpinBox_acequiaInit->setValue(acequia.getACaudal_agua());
+            ui->doubleSpinBox_acequiaMax->setValue(acequia.getACaudal_max());
+            ui->doubleSpinBox_lluviaInit->setValue(lluvia.getLluvia_caudal());
+            ui->doubleSpinBox_valvulaRadio->setValue(valvula.getValvula_radio());
+
+            // Mostrar un mensaje de éxito de carga
+            QMessageBox::information(this, "Éxito", "La configuración se ha cargado correctamente desde la base de datos.");
+        }
+        else
+        {
+            // Mostrar un mensaje de error si no se encontró la configuración en la base de datos
+            QMessageBox::warning(this, "Error", "No se encontró ninguna configuración en la base de datos con el nombre especificado.");
+        }
+    }
+    else
+    {
+        // Mostrar un mensaje de error si no se pudo establecer la conexión
+        QMessageBox::warning(this, "Error", "No se pudo establecer la conexión a la base de datos.");
     }
 }
+
+
 

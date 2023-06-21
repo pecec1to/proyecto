@@ -56,15 +56,17 @@ void BaseDeDatos::guardarConfiguracion(const Alberca& alberca, const Acequia& ac
 
     QSqlQuery query(database);
     query.prepare("INSERT OR REPLACE INTO alberca (nombre, nivel_max, area_base, nivel_init, acequia_caudal_agua, acequia_caudal_max, lluvia_caudal, valvula_radio) "
-                  "VALUES (:nombre, :nivel_max, :area_base, :nivel_init, :acequia_caudal_agua, :acequia_caudal_max, :lluvia_caudal, :valvula_radio)");
-    query.bindValue(":nombre", alberca.getNombre());
-    query.bindValue(":nivel_max", alberca.getNivel_max());
-    query.bindValue(":area_base", alberca.getArea_base());
-    query.bindValue(":nivel_init", alberca.getNivel_init());
-    query.bindValue(":acequia_caudal_agua", acequia.getACaudal_agua());
-    query.bindValue(":acequia_caudal_max", acequia.getACaudal_max());
-    query.bindValue(":lluvia_caudal", lluvia.getLluvia_caudal());
-    query.bindValue(":valvula_radio", valvula.getValvula_radio());
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+    query.addBindValue(alberca.getNombre());
+    query.addBindValue(alberca.getNivel_max());
+    query.addBindValue(alberca.getArea_base());
+    query.addBindValue(alberca.getNivel_init());
+    query.addBindValue(acequia.getACaudal_agua());
+    query.addBindValue(acequia.getACaudal_max());
+    query.addBindValue(lluvia.getLluvia_caudal());
+    query.addBindValue(valvula.getValvula_radio());
+
 
     if (!query.exec()) {
         qDebug() << "Error al guardar la configuración en la base de datos:" << query.lastError().text();
@@ -82,8 +84,8 @@ void BaseDeDatos::cargarConfiguracion(const QString& nombre, Alberca& alberca, A
     }
 
     QSqlQuery query(database);
-    query.prepare("SELECT * FROM configuracion WHERE nombre = :nombre");
-    query.bindValue(":nombre", nombre);
+    query.prepare("SELECT * FROM alberca WHERE nombre = ? ;");
+    query.addBindValue(nombre);
 
     if (!query.exec()) {
         qDebug() << "Error al cargar la configuración desde la base de datos:" << query.lastError().text();
