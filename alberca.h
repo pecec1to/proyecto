@@ -23,7 +23,6 @@ public:
     double getArea_base() const;
     void setArea_base(double newArea_base);
 
-
     double getNivel_init() const;
     void setNivel_init(double newNivel_init);
 };

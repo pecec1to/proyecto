@@ -23,6 +23,8 @@ double Vsalida;
 
 float T2;
 
+bool desborde = false;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::MainWindow)
@@ -70,6 +72,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::paso_simulador()
 {
+    desborde = false;
     Qacequia = (acequia->getACaudal_max()) * static_cast<double>(ui->horizontalSlider_acequia->value()) /100000.0;
 
     Vacequia = T * Qacequia;
@@ -92,22 +95,20 @@ void MainWindow::paso_simulador()
     }
 
     double nuevoNivel_real = alberca->getNivel_real() + 100 * ((Ventrada - Vsalida) / (alberca->getArea_base()));
-    alberca->setNivel_real(nuevoNivel_real);
 
-
-    if (nuevoNivel_real<(alberca->getNivel_max()))
+    if (nuevoNivel_real <= 0)
     {
-        ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
+        nuevoNivel_real = 0;
     }
-    if (nuevoNivel_real<0)
+    else if (nuevoNivel_real > (alberca->getNivel_max()))
     {
-        ui->label_nivelTotal->setText("Nivel: " + QString::number(0) + "cm");
-    }
-    if (nuevoNivel_real > (alberca->getNivel_max()))
-    {
-        QMessageBox::warning(this, "Alerta", "La alberca se está desbordando");
+        desborde = true;
         ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_max()) + "cm");
     }
+
+    ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
+
+    alberca->setNivel_real(nuevoNivel_real);
 
     ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
     ui->labelQcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
@@ -129,6 +130,11 @@ void MainWindow::paso_simulador()
     mostrarAcequia();
     albercaCambio(nuevoNivel_real);
     mostrarValvula(valvula->getValvula_estado());
+
+    if (desborde == true)
+    {
+        QMessageBox::warning(this, "Alerta", "La alberca se está desbordando");
+    }
 }
 
 void MainWindow::on_pushButton_start_clicked()
@@ -347,16 +353,11 @@ void MainWindow::mostrarValvula(bool activado)
     valvulaRect->setPen(contorno);
     valvulaRect->setBrush(relleno);
 
-
     valvulaRect->setRect((alberca->getArea_base()),0.0, 100.0,-10.0);
-
 
     contorno.setColor(QColor(80,16,110));
     contorno.setWidth(1); // grosor
     contorno.setStyle(Qt::PenStyle::SolidLine);
-
-
-    //QColor(173,216,230)
 
     QPolygonF forma;
 
@@ -365,26 +366,15 @@ void MainWindow::mostrarValvula(bool activado)
 
     relleno.setStyle(Qt::BrushStyle::SolidPattern);
 
-    //QpointF
-
-   //forma.setPolygon();
-
-    //forma.append(QPointF(int x, int y));
-
-
     forma << QPointF((alberca->getArea_base())+35.0, 10.0) << QPointF((alberca->getArea_base())+65.0, 10.0) << QPointF((alberca->getArea_base())+35.0, -20.0) << QPointF((alberca->getArea_base())+65.0, -20.0);
-    //forma << QPointF(335.0, 10.0) << QPointF(365.0, 10.0) << QPointF(335.0, -20.0) << QPointF(365.0, -20.0);
 
     forma.isClosed();
-   //~QAbstractGraphicsShapeItem( ¿?);
 
     valvulaTring = new QGraphicsPolygonItem;
 
     valvulaTring->setPen(contorno);
     valvulaTring->setBrush(relleno);
     valvulaTring->setPolygon(forma);   //para decirle que sea un triangulo
-
-
 
     scene->addItem(valvulaRect);
     scene->addItem(valvulaTring);
