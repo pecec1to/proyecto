@@ -1,5 +1,6 @@
 #ifndef ALBERCA_H
 #define ALBERCA_H
+#include <QString>
 
 class Alberca
 {
@@ -8,7 +9,7 @@ private:
     double nivel_max;
     double area_base;
     double nivel_init;
-
+    QString nombre;
 
 public:
     Alberca();
@@ -26,6 +27,9 @@ public:
 
     double getNivel_init() const;
     void setNivel_init(double newNivel_init);
+
+    QString getNombre() const;
+    void setNombre(const QString &newNombre);
 };
 
 #endif // ALBERCA_H

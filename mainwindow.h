@@ -62,8 +62,6 @@ private slots:
 
     void on_pushButton_cerrar_clicked();
 
-    void on_horizontalSlider_acequia_valueChanged(int value);
-
     void on_doubleSpinBox_albercaMax_valueChanged(double arg1);
 
     void on_doubleSpinBox_albercaInit_valueChanged(double arg1);
@@ -77,6 +75,9 @@ private slots:
     void on_doubleSpinBox_lluviaInit_valueChanged(double arg1);
 
     void on_doubleSpinBox_valvulaRadio_valueChanged(double arg1);
+
+    void on_pushButton_Cargar_clicked();
+    void on_pushButton_Guardar_clicked();
 
 private:
     Ui::MainWindow *ui;
