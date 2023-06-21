@@ -3,8 +3,6 @@
 configuracion::configuracion()
 {
     setN_init(- __DBL_MAX__);
-    setN_max(__DBL_MAX__);
-    setAreabase(0);
     setNombre("");
     setAc_caudal(- __DBL_MAX__);
     setAc_caudal_max(__DBL_MAX__);
@@ -40,30 +38,7 @@ double configuracion::getN_init() const
 void configuracion::setN_init(double newN_init)
 {
     n_init = newN_init;
-    if (n_init >= n_max)
-    {
-        n_init = n_max;
-    }
-}
 
-double configuracion::getN_max() const
-{
-    return n_max;
-}
-
-void configuracion::setN_max(double newN_max)
-{
-    n_max = newN_max;
-}
-
-double configuracion::getAreabase() const
-{
-    return areabase;
-}
-
-void configuracion::setAreabase(double newAreabase)
-{
-    areabase = newAreabase;
 }
 
 QString configuracion::getNombre() const

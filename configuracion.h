@@ -15,8 +15,6 @@ private:
 
     //alberca
     double n_init;
-    double n_max;
-    double areabase;
     QString nombre;
 
     //lluvia
@@ -39,14 +37,6 @@ public:
     //alberca
     double getN_init() const;
     void setN_init(double newN_init);
-
-
-    double getN_max() const;
-    void setN_max(double newN_max);
-
-
-    double getAreabase() const;
-    void setAreabase(double newAreabase);
 
     QString getNombre() const;
     void setNombre(const QString &newNombre);

@@ -473,6 +473,7 @@ void MainWindow::on_pushButton_Cargar_clicked()
     albercaActiva = c;
 
     AlbercaCambiada(c->getNombre());
+    QMessageBox::information(this, "Éxito", "La alberca se ha cargado correctamente desde la base de datos.");
 }
 
 void MainWindow::on_pushButton_Guardar_clicked()
@@ -483,12 +484,13 @@ void MainWindow::on_pushButton_Guardar_clicked()
     c.setAc_caudal(ui->doubleSpinBox_acequiaInit->value());
     c.setAc_caudal_max(ui->doubleSpinBox_acequiaMax->value());
     c.setN_init(ui->doubleSpinBox_albercaInit->value());
-    c.setN_max(ui->doubleSpinBox_albercaMax->value());
-    c.setAreabase(ui->doubleSpinBox_albercaArea->value());
     c.setC_lluvia(ui->doubleSpinBox_lluviaInit->value());
     c.setValvula_r(ui->doubleSpinBox_valvulaRadio->value());
 
     albercaCreada(c);
+    qDebug().noquote().nospace() << "Configuración guardada correctamente en la base de datos.";
+
+    QMessageBox::information(this, "Éxito", "La configuración se ha guardado correctamente.");
 }
 
 void MainWindow::CrearAlberca()
@@ -503,8 +505,6 @@ void MainWindow::CrearAlberca()
     ui->doubleSpinBox_acequiaInit->setValue(0);
     ui->doubleSpinBox_acequiaMax->setValue(0);
     ui->doubleSpinBox_albercaInit->setValue(0);
-    ui->doubleSpinBox_albercaMax->setValue(0);
-    ui->doubleSpinBox_albercaArea->setValue(0);
     ui->doubleSpinBox_lluviaInit->setValue(0);
     ui->doubleSpinBox_valvulaRadio->setValue(0);
 
@@ -541,8 +541,6 @@ void MainWindow::AlbercaCambiada(QString nombre)
     ui->doubleSpinBox_acequiaInit->setValue(albercaActiva->getAc_caudal());
     ui->doubleSpinBox_acequiaMax->setValue(albercaActiva->getAc_caudal_max());
     ui->doubleSpinBox_albercaInit->setValue(albercaActiva->getN_init());
-    ui->doubleSpinBox_albercaMax->setValue(albercaActiva->getN_max());
-    ui->doubleSpinBox_albercaArea->setValue(albercaActiva->getAreabase());
     ui->doubleSpinBox_lluviaInit->setValue(albercaActiva->getC_lluvia());
     ui->doubleSpinBox_valvulaRadio->setValue(albercaActiva->getValvula_r());
 }

@@ -24,7 +24,7 @@ void BaseDeDatos::crearTablaAlberca()
 
     QSqlQuery query(database);
 
-    query.prepare("CREATE TABLE IF NOT EXISTS alberca (nombre VARCHAR(30) PRIMARY KEY, ac_caudal REAL, ac_caudal_max REAL, areabase REAL, n_init REAL, n_max REAL, c_lluvia REAL, valvula_r REAL);");
+    query.prepare("CREATE TABLE IF NOT EXISTS alberca (nombre VARCHAR(30) PRIMARY KEY, ac_caudal REAL, ac_caudal_max REAL, n_init REAL, REAL, c_lluvia REAL, valvula_r REAL);");
 
     if (!query.exec())
     {
@@ -43,14 +43,12 @@ void BaseDeDatos::guardarAlberca(const configuracion &c)
 
     QSqlQuery query(database);
 
-    query.prepare("REPLACE INTO alberca (nombre, ac_caudal, ac_caudal_max, n_init, n_max, areabase, c_lluvia, valvula_r) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+    query.prepare("REPLACE INTO alberca (nombre, ac_caudal, ac_caudal_max, n_init, c_lluvia, valvula_r) VALUES (?, ?, ?, ?, ?, ?);");
 
     query.addBindValue(c.getNombre());
     query.addBindValue(c.getAc_caudal());
     query.addBindValue(c.getAc_caudal_max());
     query.addBindValue(c.getN_init());
-    query.addBindValue(c.getN_max());
-    query.addBindValue(c.getAreabase());
     query.addBindValue(c.getC_lluvia());
     query.addBindValue(c.getValvula_r());
 
@@ -69,13 +67,11 @@ void BaseDeDatos::cargarAlberca(const configuracion &c)
 
         QSqlQuery query(database);
 
-        query.prepare("UPDATE configuraciones SET ac_caudal = ?, ac_caudal_max = ?, n_init = ?, n_max = ?, areabase = ?, c_lluvia = ?, valvula_r = ? WHERE nombre = ?;");
+        query.prepare("UPDATE configuraciones SET ac_caudal = ?, ac_caudal_max = ?, n_init = ?, c_lluvia = ?, valvula_r = ? WHERE nombre = ?;");
 
         query.addBindValue(c.getAc_caudal());
         query.addBindValue(c.getAc_caudal_max());
         query.addBindValue(c.getN_init());
-        query.addBindValue(c.getN_max());
-        query.addBindValue(c.getAreabase());
         query.addBindValue(c.getC_lluvia());
         query.addBindValue(c.getValvula_r());
         query.addBindValue(c.getNombre());
@@ -95,7 +91,7 @@ configuracion* BaseDeDatos::leerAlberca(const QString &nombre)
 
     QSqlQuery query(database);
 
-    query.prepare("SELECT nombre, ac_caudal, ac_caudal_max, n_init, n_max, areabase, c_lluvia, valvula_r FROM alberca WHERE nombre = ?;");
+    query.prepare("SELECT nombre, ac_caudal, ac_caudal_max, n_init, c_lluvia, valvula_r FROM alberca WHERE nombre = ?;");
     query.addBindValue(nombre);
 
     if (!query.exec()) {
@@ -111,8 +107,6 @@ configuracion* BaseDeDatos::leerAlberca(const QString &nombre)
         c->setAc_caudal(query.value(1).toDouble());
         c->setAc_caudal_max(query.value(2).toDouble());
         c->setN_init(query.value(3).toDouble());
-        c->setN_max(query.value(4).toDouble());
-        c->setAreabase(query.value(5).toDouble());
         c->setC_lluvia(query.value(6).toDouble());
         c->setValvula_r(query.value(7).toDouble());
     }
