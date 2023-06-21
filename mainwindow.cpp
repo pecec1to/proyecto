@@ -84,9 +84,9 @@ void MainWindow::paso_simulador()
     Vlluvia = T * Qlluvia;
     Ventrada = Vacequia + Vlluvia;
 
-    if (valvula->getValvula_estado() == VALVULA_ABIERTA)
+    if (valvula->getValvula_estado() == VALVULA_ABIERTA && retardo>15)
     {        //se divide el nivel de la alberca entre 100 para pasarlo a metros
-        Qdesague = (surface(valvula->getValvula_radio()) * (sqrt(2 * 9.8 * (static_cast<double>(alberca->getNivel_real())/100.0))));
+        Qdesague = (surface(valvula->getValvula_radio()) * (sqrt(2 * 9.8 * ((alberca->getNivel_real())/100.0))));
     } else {
         Qdesague = 0;
     }
@@ -139,7 +139,6 @@ void MainWindow::paso_simulador()
     {
         ui->label_valvula->setText("Válvula abierta");
     }
-    scene->clear();
 
 }
 
@@ -474,5 +473,5 @@ void MainWindow::valuesConfig()
 
 double MainWindow::surface(double radius)
 {
-    return (3.1415 * pow(radius, 2));
+    return (3.1415 * radius *2);
 }
