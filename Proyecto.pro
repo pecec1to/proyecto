@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -11,6 +11,7 @@ CONFIG += c++11
 SOURCES += \
     acequia.cpp \
     alberca.cpp \
+    basededatos.cpp \
     lluvia.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
 HEADERS += \
     acequia.h \
     alberca.h \
+    basededatos.h \
     lluvia.h \
     mainwindow.h \
     valvula.h

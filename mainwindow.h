@@ -5,6 +5,7 @@
 #include "alberca.h"
 #include "lluvia.h"
 #include "valvula.h"
+#include "basededatos.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -77,6 +78,10 @@ private slots:
 
     void on_doubleSpinBox_valvulaRadio_valueChanged(double arg1);
 
+    void on_pushButton_Cargar_clicked();
+
+    void on_pushButton_Guardar_clicked();
+
 private:
     Ui::MainWindow *ui;
     QTimer *timerSimulacion;
@@ -102,5 +107,7 @@ private:
     Alberca* alberca;
     Lluvia* lluvia;
     Valvula* valvula;
+
+    BaseDeDatos db;
 };
 #endif // MAINWINDOW_H

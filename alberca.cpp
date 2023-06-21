@@ -42,6 +42,16 @@ void Alberca::setNivel_init(double newNivel_init)
     nivel_init = newNivel_init;
 }
 
+QString Alberca::getNombre() const
+{
+    return nombre;
+}
+
+void Alberca::setNombre(const QString &newNombre)
+{
+    nombre = newNombre;
+}
+
 Alberca::Alberca()
 {
 
