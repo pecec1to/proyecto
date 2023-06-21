@@ -28,7 +28,7 @@ void BaseDeDatos::crearTablaAlberca()
         return;
     }
 
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.exec("CREATE TABLE IF NOT EXISTS alberca ("
                "nombre TEXT PRIMARY KEY,"
                "nivel_max REAL,"
@@ -39,7 +39,7 @@ void BaseDeDatos::crearTablaAlberca()
                "lluvia_caudal REAL,"
                "valvula_radio REAL"
                ")");
-    if (query.lastError().isValid()) {
+    if (!query.exec()) {
         qDebug() << "Error al crear la tabla alberca:" << query.lastError().text();
         return;
     }
@@ -54,7 +54,7 @@ void BaseDeDatos::guardarConfiguracion(const Alberca& alberca, const Acequia& ac
         return;
     }
 
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("INSERT OR REPLACE INTO alberca (nombre, nivel_max, area_base, nivel_init, acequia_caudal_agua, acequia_caudal_max, lluvia_caudal, valvula_radio) "
                   "VALUES (:nombre, :nivel_max, :area_base, :nivel_init, :acequia_caudal_agua, :acequia_caudal_max, :lluvia_caudal, :valvula_radio)");
     query.bindValue(":nombre", alberca.getNombre());
