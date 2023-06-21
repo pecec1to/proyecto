@@ -5,6 +5,7 @@
 #include "alberca.h"
 #include "lluvia.h"
 #include "valvula.h"
+#include "basededatos.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -104,5 +105,7 @@ private:
     Alberca* alberca;
     Lluvia* lluvia;
     Valvula* valvula;
+
+    BaseDeDatos db;
 };
 #endif // MAINWINDOW_H
