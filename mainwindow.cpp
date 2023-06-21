@@ -65,6 +65,18 @@ MainWindow::MainWindow(QWidget *parent)
     mostrarAcequia();
     mostrarAlberca();
     mostrarValvula(valvula->getValvula_estado());
+
+
+    dbConectada = db.conectar();
+    if (dbConectada)
+    {
+        db.crearTablaAlberca();
+        CrearAlberca();
+    }
+    else
+    {
+        QMessageBox::warning(this, "Base de datos no conectada.", "No ha sido posible conectarse a la base de datos.");
+    }
 }
 
 MainWindow::~MainWindow()
@@ -105,7 +117,7 @@ void MainWindow::paso_simulador()
     else if (nuevoNivel_real > (alberca->getNivel_max()))
     {
         desborde = true;
-        ui->label_nivelTotal->setText("Nivel: " + QString::number(alberca->getNivel_max()) + "cm");
+        nuevoNivel_real=alberca->getNivel_max();
     }
 
     ui->label_nivelTotal->setText("Nivel: " + QString::number(nuevoNivel_real) + "cm");
@@ -113,8 +125,8 @@ void MainWindow::paso_simulador()
     alberca->setNivel_real(nuevoNivel_real);
 
     ui->label_caudalsalida->setText("Caudal de salida: " + QString::number(Qdesague) + "m^3/s");
-    ui->labelQcaudal->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
-    ui->labelQdesague->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
+    ui->labelVsalida->setText("Vsalida: " + QString::number(Vsalida) + "m^3/s");
+    ui->labelVentrada->setText("Ventrada: " + QString::number(Ventrada) + "m^3/s");
     ui->labelQacequia->setText("Qacequiamax: " + QString::number(acequia->getACaudal_max()) + "m^3/s");
 
     T2 = T2 + T/1000.0;
@@ -176,7 +188,11 @@ void MainWindow::on_pushButton_start_clicked()
     double Spinbox_acequiamax= ui->doubleSpinBox_acequiaMax->value();
     acequia->setACaudal_max(Spinbox_acequiamax);
 
+    scene->clear();
+    mostrarAcequia();
+    mostrarAlberca();
     albercaCambio(alberca->getNivel_real());
+    mostrarValvula(valvula->getValvula_estado());
 
 }
 
@@ -206,14 +222,13 @@ void MainWindow::on_pushButton_reset_clicked()
     Qlluvia=0;
 
     valuesConfig();
-
+    scene->clear();
     ui->label_nivelTotal->setText("Nivel: " + QString::number(ui->doubleSpinBox_albercaInit->value()) + "cm");
     alberca->setNivel_init(ui->doubleSpinBox_albercaInit->value());
     mostrarAcequia();
-    albercaCambio(alberca->getNivel_init());
+
     mostrarValvula(valvula->getValvula_estado());
 }
-
 
 void MainWindow::on_radioButton_1x_clicked()
 {
@@ -234,7 +249,6 @@ void MainWindow::on_radioButton_250x_clicked()
 {
     T = 4;
 }
-
 
 void MainWindow::on_horizontalSlider_acequia_sliderMoved(int position)
 {
@@ -444,66 +458,91 @@ double MainWindow::surface(double radius)
     return (3.1415 * radius *2);
 }
 
-void MainWindow::on_pushButton_Guardar_clicked()
-{
-    QString nombre = ui->lineEdit_nombre->text();
-
-    Alberca alberca;
-    alberca.setNivel_max(ui->doubleSpinBox_albercaMax->value());
-    alberca.setArea_base(ui->doubleSpinBox_albercaArea->value());
-    alberca.setNivel_init(ui->doubleSpinBox_albercaInit->value());
-    alberca.setNombre(nombre);
-
-    Acequia acequia;
-    acequia.setACaudal_agua(ui->doubleSpinBox_acequiaInit->value());
-    acequia.setACaudal_max(ui->doubleSpinBox_acequiaMax->value());
-
-    Lluvia lluvia;
-    lluvia.setLluvia_caudal(ui->doubleSpinBox_lluviaInit->value());
-
-    Valvula valvula;
-    valvula.setValvula_radio(ui->doubleSpinBox_valvulaRadio->value());
-
-    if (db.conectar())
-    {
-        db.guardarConfiguracion(alberca, acequia, lluvia, valvula);
-
-        // Mostrar un mensaje de éxito de guardado
-        QMessageBox::information(this, "Éxito", "La configuración se ha guardado correctamente en la base de datos.");
-    }
-    else
-    {
-        // Mostrar un mensaje de error si no se pudo establecer la conexión
-        QMessageBox::warning(this, "Error", "No se pudo establecer la conexión a la base de datos.");
-    }
-}
-
 void MainWindow::on_pushButton_Cargar_clicked()
 {
     QString nombre = ui->lineEdit_nombre->text();
 
-    Alberca alberca;
-    Acequia acequia;
-    Lluvia lluvia;
-    Valvula valvula;
+    configuracion* c = db.leerAlberca(nombre);
 
-    if (db.conectar() && db.cargarConfiguracion(nombre, alberca, acequia, lluvia, valvula))
-    {
-        // Configuración cargada correctamente, actualizar los valores en las spinboxes
-        ui->doubleSpinBox_albercaMax->setValue(alberca.getNivel_max());
-        ui->doubleSpinBox_albercaArea->setValue(alberca.getArea_base());
-        ui->doubleSpinBox_albercaInit->setValue(alberca.getNivel_init());
-        ui->doubleSpinBox_acequiaInit->setValue(acequia.getACaudal_agua());
-        ui->doubleSpinBox_acequiaMax->setValue(acequia.getACaudal_max());
-        ui->doubleSpinBox_lluviaInit->setValue(lluvia.getLluvia_caudal());
-        ui->doubleSpinBox_valvulaRadio->setValue(valvula.getValvula_radio());
+    if (c == nullptr) {
+        return;
+    }
 
-        // Mostrar un mensaje de éxito de carga
-        QMessageBox::information(this, "Éxito", "La configuración se ha cargado correctamente desde la base de datos.");
+    if (albercaActiva != nullptr) {
+        delete albercaActiva;
     }
-    else
-    {
-        // Mostrar un mensaje de error si no se encuentra la configuración en la base de datos
-        QMessageBox::warning(this, "Error", "No se encontró ninguna configuración en la base de datos con el nombre especificado.");
+
+    albercaActiva = c;
+
+    AlbercaCambiada(c->getNombre());
+    QMessageBox::information(this, "Éxito", "La alberca se ha cargado correctamente desde la base de datos.");
+}
+
+void MainWindow::on_pushButton_Guardar_clicked()
+{
+    configuracion c;
+
+    c.setNombre(ui->lineEdit_nombre->text());
+    c.setAc_caudal(ui->doubleSpinBox_acequiaInit->value());
+    c.setAc_caudal_max(ui->doubleSpinBox_acequiaMax->value());
+    c.setN_init(ui->doubleSpinBox_albercaInit->value());
+    c.setC_lluvia(ui->doubleSpinBox_lluviaInit->value());
+    c.setValvula_r(ui->doubleSpinBox_valvulaRadio->value());
+
+    albercaCreada(c);
+    qDebug().noquote().nospace() << "Configuración guardada correctamente en la base de datos.";
+
+    QMessageBox::information(this, "Éxito", "La configuración se ha guardado correctamente.");
+}
+
+void MainWindow::CrearAlberca()
+{
+    if (!dbConectada) {
+        return;
     }
+
+    QList<QString>* lista = db.leerNombreAlberca();
+
+    ui->lineEdit_nombre->setText("");
+    ui->doubleSpinBox_acequiaInit->setValue(0);
+    ui->doubleSpinBox_acequiaMax->setValue(0);
+    ui->doubleSpinBox_albercaInit->setValue(0);
+    ui->doubleSpinBox_lluviaInit->setValue(0);
+    ui->doubleSpinBox_valvulaRadio->setValue(0);
+
+    delete lista;
+}
+
+void MainWindow::albercaCreada(configuracion& c)
+{
+    if (!dbConectada) {
+        return;
+    }
+
+    db.guardarAlberca(c);
+    CrearAlberca();
+}
+
+void MainWindow::AlbercaCambiada(QString nombre)
+{
+    if (!dbConectada) {
+        return;
+    }
+    if (albercaActiva == nullptr) {
+        return;
+    }
+    configuracion* cn = db.leerAlberca(nombre);
+
+    if (cn == nullptr) {
+        return;
+    }
+
+    delete albercaActiva;
+    albercaActiva = cn;
+
+    ui->doubleSpinBox_acequiaInit->setValue(albercaActiva->getAc_caudal());
+    ui->doubleSpinBox_acequiaMax->setValue(albercaActiva->getAc_caudal_max());
+    ui->doubleSpinBox_albercaInit->setValue(albercaActiva->getN_init());
+    ui->doubleSpinBox_lluviaInit->setValue(albercaActiva->getC_lluvia());
+    ui->doubleSpinBox_valvulaRadio->setValue(albercaActiva->getValvula_r());
 }
